@@ -26,6 +26,8 @@ int tipoDeListaUtilizada;
 int pilha = 1;
 int fila = 2;
 
+bool saidaSimples = true;
+Lista* pilhaAuxiliar;
 
 // working with maximum 1000 edges of 20 words
 char readLines[1000][20];
@@ -228,9 +230,12 @@ void printGrafo(Grafo* grafo) {
 
 // Busca em Profundidade - DFS
 
-
 Lista* buscaEmProfundidadeRecursiva(int verticeInicial, Grafo* grafo, Lista* marcados) {
 	marcados = insereNaLista(verticeInicial, marcados);
+	if (!saidaSimples) {
+		pilhaAuxiliar = insereNaLista(verticeInicial, pilhaAuxiliar);
+		printLista(pilhaAuxiliar);
+	}
 
 	ListaAdj* linkVerticeFinal = grafo->listaAdj[verticeInicial];
 	while (linkVerticeFinal != NULL) {
@@ -242,10 +247,14 @@ Lista* buscaEmProfundidadeRecursiva(int verticeInicial, Grafo* grafo, Lista* mar
 		linkVerticeFinal = linkVerticeFinal->proximo;
 	}
 
+	if (!saidaSimples) {
+		removeDaLista(pilhaAuxiliar);
+	}
+
 	return marcados;
 }
 
-void buscaEmProfundidade(Grafo* grafo, bool saidaSimples) {
+void buscaEmProfundidade(Grafo* grafo) {
 	if (saidaSimples) {
 		printf("DFS:\n");
 	} else {
@@ -266,7 +275,7 @@ void buscaEmProfundidade(Grafo* grafo, bool saidaSimples) {
 
 
 // Busca em Largura - BFS
-void buscaEmLargura(Grafo* grafo, bool saidaSimples) {
+void buscaEmLargura(Grafo* grafo) {
 	if (saidaSimples) {
 		printf("BFS:\n");
 	} else {
@@ -279,12 +288,23 @@ void buscaEmLargura(Grafo* grafo, bool saidaSimples) {
 	Lista* marcados = criaLista(valorInicial);
 	Lista* aVisitar = criaLista(valorInicial);
 
+	if (!saidaSimples) {
+		pilhaAuxiliar = insereNaLista(valorInicial, pilhaAuxiliar);
+		printLista(pilhaAuxiliar);
+	}
+
 	while (listaNaoEstaVazia(aVisitar)) {
 		int verticeInicial = aVisitar->valor;
 
 		ListaAdj* linkVerticeFinal = grafo->listaAdj[verticeInicial];
 		while (linkVerticeFinal != NULL) {
 			int verticeFinal = linkVerticeFinal->verticeFinal;
+
+			if (!saidaSimples) {
+				pilhaAuxiliar = insereNaLista(verticeFinal, pilhaAuxiliar);
+				printLista(pilhaAuxiliar);
+			}
+
 			if (!valorEstaNaLista(verticeFinal, marcados)) {
 				marcados = insereNaLista(verticeFinal, marcados);
 				aVisitar = insereNaLista(verticeFinal, aVisitar);
@@ -293,7 +313,13 @@ void buscaEmLargura(Grafo* grafo, bool saidaSimples) {
 				// visite aresta i-f
 			}
 			linkVerticeFinal = linkVerticeFinal->proximo;
+
+			if (!saidaSimples) {
+				removeDaLista(pilhaAuxiliar);
+			}
 		}
+
+		
 		removeDaLista(aVisitar);
 	}
 
@@ -301,6 +327,11 @@ void buscaEmLargura(Grafo* grafo, bool saidaSimples) {
 		printLista(marcados);
 	}
 	printf("\n");
+}
+
+void calculaComponentesConexos(Grafo* grafo) {
+	printf("Connected Components:\n");
+	printf("C1:");
 }
 
 // Inicializa e popula o Grafo
@@ -311,24 +342,6 @@ Grafo* inicializaGrafo(int numVertices, int numArestas) {
 	grafo->listaAdj = (ListaAdj **) malloc (numVertices * sizeof(ListaAdj *));
 
 	return grafo;
-}
-
-void populaGrafo(Grafo* grafo) {
-	insereArestaNaoDirecionada(0,1,1, grafo);
-	insereArestaNaoDirecionada(0,6,1, grafo);
-	insereArestaNaoDirecionada(0,7,1, grafo);
-
-	insereArestaNaoDirecionada(1,2,1, grafo);
-	insereArestaNaoDirecionada(1,5,1, grafo);
-
-	insereArestaNaoDirecionada(2,3,1, grafo);
-	insereArestaNaoDirecionada(2,4,1, grafo);
-
-	insereArestaNaoDirecionada(7,8,1, grafo);
-	insereArestaNaoDirecionada(7,11,1, grafo);
-
-	insereArestaNaoDirecionada(8,9,1, grafo);
-	insereArestaNaoDirecionada(8,10,1, grafo);
 }
 
 
@@ -415,28 +428,34 @@ Grafo* carregaGrafo(char* arquivoEntrada) {
 }
 
 
-
-
 // Mainly the main
 int main(int numParams, char *params[]){
 	char* arquivoEntrada = params[1];
 
-	Grafo* grafoPrincipal;
-	if (numParams > 0) {
-		grafoPrincipal = carregaGrafo(arquivoEntrada);
+	Grafo* grafoPrincipal = carregaGrafo(arquivoEntrada);
 
-	} else {
-		grafoPrincipal = inicializaGrafo(12, 11);
-		populaGrafo(grafoPrincipal);
+
+	saidaSimples = true;
+	buscaEmLargura(grafoPrincipal);
+
+	saidaSimples = false;
+	buscaEmLargura(grafoPrincipal);
+	// esvazia pilha auxiliar
+	while (listaNaoEstaVazia(pilhaAuxiliar)) {
+		removeDaLista(pilhaAuxiliar);
 	}
 
-	buscaEmLargura(grafoPrincipal, true);
-	buscaEmLargura(grafoPrincipal, false);
 
-	buscaEmProfundidade(grafoPrincipal, true);
-	buscaEmProfundidade(grafoPrincipal, false);
+	saidaSimples = true;
+	buscaEmProfundidade(grafoPrincipal);
 
-//	printGrafo(grafoPrincipal);
+	saidaSimples = false;
+	buscaEmProfundidade(grafoPrincipal);
+
+
+	// Limpa a memória
+	free(pilhaAuxiliar);
+	free(grafoPrincipal);
 
 	return 0;
 }
